@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>index</title>
+	<body>
+		<input type="file" id="demo_input" multiple/>
+		<div id="demo_result" onselectstart="return false;">
+	          <!-- 这里用来显示读取结果 -->
+	    </div>
+	    <p>
+	    	<input type="button" value="clip" id="clip"/>
+	    </p>
+	    <script src="js/Query.js"></script>
+	    <script src="js/main.js"></script>
+		<script>
+			(function() {
+				var input = document.getElementById('demo_input');
+				input.addEventListener('change', function() {
+					var me = this,
+						fc = new Widget.FaceCut('demo_result', {
+							file: me.files[0],
+							height: 400,
+							width: 400
+						});
+					fc.fileRead();
+					$.g('clip').onclick = function() {
+						// fc.clip();
+						var img = new Image(),
+							src = fc.exportImage();
+						img.src = src;
+						document.body.appendChild(img);
+					}
+				}, false);
+			})();
+		</script>	
+	</body>
+</html>
