@@ -3,31 +3,36 @@
 	<head>
 		<meta charset="utf-8" />
 		<title>index</title>
+		<style>
+			*{ padding: 0; margin: 0; }
+			#clip{ padding: 2px 8px; }
+			#result{ padding: 10px 0; }
+		</style>
 	<body>
-		<input type="file" id="demo_input" multiple/>
-		<div id="demo_result" onselectstart="return false;">
-	          <!-- 这里用来显示读取结果 -->
+		<div style="width: 600px; margin: 20px auto;">
+			<input type="file" id="file_input" multiple/>
+			<input type="button" value="clip" id="clip"/>
+			<div id="result" onselectstart="return false;">
+		          <!-- 这里用来显示读取结果 -->
+		    </div>
 	    </div>
-	    <p>
-	    	<input type="button" value="clip" id="clip"/>
-	    </p>
 	    <script src="js/Query.js"></script>
 	    <script src="js/main.js"></script>
 		<script>
 			(function() {
-				var input = document.getElementById('demo_input');
+				var input = document.getElementById('file_input');
 				input.addEventListener('change', function() {
 					var me = this,
-						fc = new Widget.FaceCut('demo_result', {
+						fc = new Widget.ScreenShot('result', {
 							file: me.files[0],
 							height: 400,
 							width: 400
 						});
-					fc.fileRead();
+					fc.init();
 					$.g('clip').onclick = function() {
 						// fc.clip();
 						var img = new Image(),
-							src = fc.exportImage();
+							src = fc.done();
 						img.src = src;
 						document.body.appendChild(img);
 					}
