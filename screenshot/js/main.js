@@ -12,9 +12,9 @@ var Widget = {};
 		}, settings);
 		if(!settings.img || !settings.height || !settings.width) { return; }
 		var img = settings.img,
+			width = settings.width,
+			height = settings.height,
 			size = this.fixImage(settings, { width: img.width, height: img.height }),
-			width = settings.width === 'auto' ? size.width : settings.width,
-			height = settings.height === 'auto' ? size.height : settings.height,
 			canvas = $.createElement('canvas', {
 				cursor: 'default'
 			}, {
