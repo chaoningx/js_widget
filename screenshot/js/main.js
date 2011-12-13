@@ -163,6 +163,7 @@ var Widget = {};
 				octx = this.drawImage.canvas.getContext('2d'),
 				selectCanvas = this.selectCanvas,
 				sctx = this.sctx;
+			sctx.clearRect(0, 0, settings.width, settings.height);
 			sctx.fillRect(0, 0, settings.width, settings.height);
 			sctx.strokeRect(x, y, settings.selectWidth, settings.selectHeight);
 			sctx.clearRect(x + 1, y + 1, settings.selectWidth - 2, settings.selectHeight - 2);
