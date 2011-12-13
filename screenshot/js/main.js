@@ -80,17 +80,17 @@ var Widget = {};
 		settings = $.merge({
 			height: 'auto',
 			width: 'auto',
-			screenWidth: 200,
-			screenHeight: 200,
+			selectWidth: 80,
+			selectHeight: 80,
 			file: ''
 		}, settings);
 		if(!el || !settings.file || settings.file.constructor.toString().indexOf('File') == -1) { return; }
 		
 		this.settings = settings;
 		this.el = typeof el === 'string' ? $.g(el) : el;
-		this.coverCanvas = $.createElement('canvas', {}, {
-			height: height,
-			width: width
+		this.selectCanvas = $.createElement('canvas', {}, {
+			height: settings.height,
+			width: settings.width
 		}),
 		this.drawImage = null;
 		/**
@@ -105,7 +105,8 @@ var Widget = {};
 		 * </p>
 		 * @param {Object} imgInfo 截图信息
 		 */
-		this.cutImgInfo = { sx: 0, sy: 0, sw: settings.screenWidth, sh: settings.screenHeight };
+		this.selectPos
+		this.cutImgInfo = { sx: 0, sy: 0 };
 	};
 	
 	Widget.ScreenShot.prototype = {
@@ -130,7 +131,7 @@ var Widget = {};
 	        		el.innerHTML = '';
 	        		drawImage.appendTo(el);
 	        		me.drawImage = drawImage;
-	        		me.cover(me.settings.width, me.settings.height);
+	        		me.paintSelectArea(10, 10);
 	        	}
 	        	img.src = this.result;
 	        }
@@ -138,42 +139,37 @@ var Widget = {};
 		exportImage: function() {
 			return this.drawImage.canvas.toDataURL();
 		},
-		cut: function() {
+		done: function() {
 			var settings = this.settings,
 				info = this.cutImgInfo,
-				width = settings.screenWidth,
-				height = settings.screenHeight,
+				width = settings.selectWidth,
+				height = settings.selectHeight,
 				cutter = $.createElement('canvas', {}, {
 					width: width,
 					height: height
 				}),
 				cutCtx = cutter.getContext('2d'),
 				canvas = this.drawImage.canvas;
-			cutCtx.drawImage(canvas, info.sx, info.sy, info.sw, info.sh, 0, 0, width, height);
+			cutCtx.drawImage(canvas, info.sx, info.sy, width, height, 0, 0, width, height);
 			return cutter.toDataURL();
 		},
-		cover: function(width, height) {
-			var octx = this.drawImage.canvas.getContext('2d'),
-				temp = $.createElement('canvas', {}, {
-					height: height,
-					width: width
-				}),
-				ctx = temp.getContext('2d');
+		paintSelectArea: function(x, y) {
+			var settings = this.settings,
+				octx = this.drawImage.canvas.getContext('2d'),
+				selectCanvas = this.selectCanvas,
+				ctx = selectCanvas.getContext('2d');
 			ctx.strokeStyle = "white";
 			ctx.fillStyle = 'rgba(0,0,0,0.5)';
-			ctx.fillRect(0, 0, width, height);
-			ctx.strokeRect(20, 20, 100, 100);
-			ctx.clearRect(21, 21, 98, 98);
-			octx.drawImage(temp, 0, 0);
+			ctx.fillRect(0, 0, settings.width, settings.height);
+			ctx.strokeRect(x, y, settings.selectWidth, settings.selectHeight);
+			ctx.clearRect(x + 1, y + 1, settings.selectWidth - 2, settings.selectHeight - 2);
+			octx.drawImage(selectCanvas, 0, 0);
+			this.cutImgInfo = { sx: x, sy: y };
 		},
-		paintSelectArea: function() {
+		bind: function() {
+			var canvas = this.drawImage.canvas;
 			
-		},
-		clip: function() {
-			var ctx = this.drawImage.canvas.getContext('2d');
-			ctx.beginPath();
-			ctx.fillRect(0,0,150,150);
-			ctx.restore();
+			canvas.addEventListener('mousemove', function() {}, false);
 		}
 	}
 })();
