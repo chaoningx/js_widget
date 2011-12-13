@@ -88,29 +88,33 @@ var Widget = {};
 		
 		this.settings = settings;
 		this.el = typeof el === 'string' ? $.g(el) : el;
-		this.selectCanvas = $.createElement('canvas', {}, {
-			height: settings.height,
-			width: settings.width
-		}),
+		var selectCanvas = $.createElement('canvas', {}, {
+					height: settings.height,
+					width: settings.width
+			}),
+			sctx = selectCanvas.getContext('2d');
+			
+		sctx.strokeStyle = "white";
+		sctx.fillStyle = 'rgba(0,0,0,0.5)';
+		
 		this.drawImage = null;
 		/**
-		 * 截图
+		 * 选区原点坐标
 		 * <p>
-		 * imgInfo = {
-		 *     sx: 1, // 开始点X坐标
-		 *     sy: 1, // 开始点Y坐标
-		 *     sh: 20, // 截图宽度
-		 *     sw: 20 // 截图高度
+		 * selectPos = {
+		 *     x: 1, // 开始点X坐标
+		 *     y: 1, // 开始点Y坐标
 		 * }
 		 * </p>
 		 * @param {Object} imgInfo 截图信息
 		 */
-		this.selectPos
-		this.cutImgInfo = { sx: 0, sy: 0 };
+		this.selectPos = { x: 0, y: 0 };
+		this.selectCanvas = selectCanvas;
+		this.sctx = sctx;
 	};
 	
 	Widget.ScreenShot.prototype = {
-		fileRead: function() {
+		init: function() {
 			var file = this.settings.file;
 			if(!/image\/\w+/.test(file.type)){
 	            return "请确保文件为图像类型";
@@ -132,6 +136,7 @@ var Widget = {};
 	        		drawImage.appendTo(el);
 	        		me.drawImage = drawImage;
 	        		me.paintSelectArea(10, 10);
+	        		me.bind();
 	        	}
 	        	img.src = this.result;
 	        }
@@ -141,7 +146,7 @@ var Widget = {};
 		},
 		done: function() {
 			var settings = this.settings,
-				info = this.cutImgInfo,
+				info = this.selectPos,
 				width = settings.selectWidth,
 				height = settings.selectHeight,
 				cutter = $.createElement('canvas', {}, {
@@ -150,26 +155,55 @@ var Widget = {};
 				}),
 				cutCtx = cutter.getContext('2d'),
 				canvas = this.drawImage.canvas;
-			cutCtx.drawImage(canvas, info.sx, info.sy, width, height, 0, 0, width, height);
+			cutCtx.drawImage(canvas, info.x, info.y, width, height, 0, 0, width, height);
 			return cutter.toDataURL();
 		},
 		paintSelectArea: function(x, y) {
 			var settings = this.settings,
 				octx = this.drawImage.canvas.getContext('2d'),
 				selectCanvas = this.selectCanvas,
-				ctx = selectCanvas.getContext('2d');
-			ctx.strokeStyle = "white";
-			ctx.fillStyle = 'rgba(0,0,0,0.5)';
-			ctx.fillRect(0, 0, settings.width, settings.height);
-			ctx.strokeRect(x, y, settings.selectWidth, settings.selectHeight);
-			ctx.clearRect(x + 1, y + 1, settings.selectWidth - 2, settings.selectHeight - 2);
+				sctx = this.sctx;
+			sctx.fillRect(0, 0, settings.width, settings.height);
+			sctx.strokeRect(x, y, settings.selectWidth, settings.selectHeight);
+			sctx.clearRect(x + 1, y + 1, settings.selectWidth - 2, settings.selectHeight - 2);
 			octx.drawImage(selectCanvas, 0, 0);
-			this.cutImgInfo = { sx: x, sy: y };
+			this.selectPos = { x: x, y: y };
 		},
 		bind: function() {
-			var canvas = this.drawImage.canvas;
+			var me = this,
+				canvas = this.drawImage.canvas,
+				start = 0,
+				end = 0,
+				pos = 0,
+				sw = this.settings.selectWidth,
+				sh = this.settings.selectHeight,
+				timerId = 0,
+				isInRange = function(x, y, start, end) {
+					if(x >= start.x && x <= end.x && y >= start.y && y <= end.y) {
+						return true;
+					}
+					return false;
+				},
+				move = function(e) {
+					me.paintSelectArea(e.offsetX, e.offsetY);
+				};
+				
+			canvas.addEventListener('mousedown', function(e) {
+				timerId = setTimeout(function() {
+					start = me.selectPos;
+					end = { x: start.x + sw, y: start.y + sh };
+					if(isInRange(e.offsetX, e.offsetY, start, end)) {
+						pos = { x: start.x, y: start.y };
+						canvas.addEventListener('mousemove', move, false);
+					}
+				}, 200);
+			}, false);
 			
-			canvas.addEventListener('mousemove', function() {}, false);
+			canvas.addEventListener('mouseup', function(e) {
+				clearTimeout(timerId);
+				canvas.removeEventListener('mousemove', move, false);
+			}, false);
+			// canvas.addEventListener('mousemove', function() {}, false);
 		}
 	}
 })();
