@@ -21,17 +21,25 @@ var Widget = {};
 				width: width,
 				height: height
 			}),
+			temp = $.createElement('canvas', {}, {
+				width: width,
+				height: height
+			}),
+			tctx = temp.getContext('2d'),
+			scaleX = size.width / img.width, 
+			scaleY =  size.height / img.height,
 			ctx = canvas.getContext('2d');
 		
-		ctx.scale(size.width / img.width, size.height / img.height);
+		tctx.scale(scaleX, scaleY);
 		if(width >= size.width && height >= size.height) {
-			ctx.drawImage(img, (width - size.width) / 2, (height - size.height) / 2)
+			tctx.drawImage(img, (width - size.width) / 2, (height - size.height) / 2)
 		}else if(width >= size.width) {
-			ctx.drawImage(img, (width - size.width) / 2, 0)
+			tctx.drawImage(img, (width - size.width) / 2, 0)
 		}else {
-			ctx.drawImage(img, 0, (height - size.height) / 2)
+			tctx.drawImage(img, 0, (height - size.height) / 2)
 		}
-		// ctx.drawImage(img, 0, 0);
+		ctx.drawImage(temp, 0, 0);
+		// tctx.drawImage(img, 0, 0);
 		this.canvas = canvas;
 		this.ctx = ctx;
 	};
@@ -52,7 +60,6 @@ var Widget = {};
 			var ow = origin.width,
 				oh = origin.height,
 				size = { height: target.height, width: target.width };
-			
 			if(size.width < ow && size.height < oh) {
 				return { height: oh, width: ow };
 			}
@@ -79,10 +86,12 @@ var Widget = {};
 		}, settings);
 		if(!el || !settings.file || settings.file.constructor.toString().indexOf('File') == -1) { return; }
 		
-		
-		
 		this.settings = settings;
 		this.el = typeof el === 'string' ? $.g(el) : el;
+		this.coverCanvas = $.createElement('canvas', {}, {
+			height: height,
+			width: width
+		}),
 		this.drawImage = null;
 		/**
 		 * 截图
@@ -121,6 +130,7 @@ var Widget = {};
 	        		el.innerHTML = '';
 	        		drawImage.appendTo(el);
 	        		me.drawImage = drawImage;
+	        		me.cover(me.settings.width, me.settings.height);
 	        	}
 	        	img.src = this.result;
 	        }
@@ -142,15 +152,26 @@ var Widget = {};
 			cutCtx.drawImage(canvas, info.sx, info.sy, info.sw, info.sh, 0, 0, width, height);
 			return cutter.toDataURL();
 		},
+		cover: function(width, height) {
+			var octx = this.drawImage.canvas.getContext('2d'),
+				temp = $.createElement('canvas', {}, {
+					height: height,
+					width: width
+				}),
+				ctx = temp.getContext('2d');
+			ctx.strokeStyle = "white";
+			ctx.fillStyle = 'rgba(0,0,0,0.5)';
+			ctx.fillRect(0, 0, width, height);
+			ctx.strokeRect(20, 20, 100, 100);
+			ctx.clearRect(21, 21, 98, 98);
+			octx.drawImage(temp, 0, 0);
+		},
+		paintSelectArea: function() {
+			
+		},
 		clip: function() {
 			var ctx = this.drawImage.canvas.getContext('2d');
 			ctx.beginPath();
-			ctx.arc(0,0,60,0,Math.PI*2,true);
-			ctx.clip();
-			var lingrad = ctx.createLinearGradient(0,-75,0,75);
-			lingrad.addColorStop(0, '#232256');
-			lingrad.addColorStop(1, '#143778');
-			ctx.fillStyle = lingrad;
 			ctx.fillRect(0,0,150,150);
 			ctx.restore();
 		}
