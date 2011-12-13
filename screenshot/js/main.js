@@ -7,29 +7,32 @@ var Widget = {};
 	Widget.DrawImage = function(settings) {
 		settings = $.merge({
 			img: '',
-			height: 'auto',
-			width: 'auto'
+			height: 400,
+			width: 400
 		}, settings);
-		if(!settings.img) { return; }
+		if(!settings.img || !settings.height || !settings.width) { return; }
 		var img = settings.img,
 			size = this.fixImage(settings, { width: img.width, height: img.height }),
+			width = settings.width === 'auto' ? size.width : settings.width,
+			height = settings.height === 'auto' ? size.height : settings.height,
 			canvas = $.createElement('canvas', {
 				cursor: 'default'
 			}, {
-				width: size.width,
-				height: size.height
+				width: width,
+				height: height
 			}),
 			ctx = canvas.getContext('2d'),
 			heightScale = size.height / img.height,
 			widthScale = size.width / img.width;
-		if(heightScale < 1 && widthScale < 1) {
 			ctx.scale(widthScale, heightScale);
-		}else if(heightScale < 1){
-			ctx.scale(1, heightScale);
-		}else if(widthScale < 1) {
-			ctx.scale(widthScale, 1);
+			
+		if(width >= size.width && height >= size.height) {
+			ctx.drawImage(img, (width - size.width) / 2, (height - size.height) / 2)
+		}else if(width >= size.width) {
+			ctx.drawImage(img, (width - size.width) / 2, 0)
+		}else {
+			ctx.drawImage(img, 0, (height - size.height) / 2)
 		}
-		ctx.drawImage(img, 0, 0);
 		this.canvas = canvas;
 		this.ctx = ctx;
 	};
@@ -49,34 +52,12 @@ var Widget = {};
 		fixImage: function(origin, target) {
 			var ow = origin.width,
 				oh = origin.height,
-				tw = target.width,
-				th = target.height,
-				size = {};
-			if(oh !== 'auto' && ow !== 'auto') {
-				if(oh < th && ow < tw) {
-					size = this.scale({ height: th, width: tw }, ow, true);
-					if(size.height > oh) {
-						size = this.scale(size, oh, false);
-					}
-				}else if(oh < th){
-					size = this.scale({ height: th, width: tw }, oh, false);
-				}else{
-					size = this.scale({ height: th, width: tw }, ow, true);
-				}
-			}else if(oh !== 'auto'){
-				if(oh < th) {
-					size = this.scale({ height: th, width: tw }, oh, false);
-				}else {
-					size = { height: th, width: tw };
-				}
-			}else if(ow !== 'auto'){
-				if(ow < tw) {
-					size = this.scale({ height: th, width: tw }, ow, true);
-				}else {
-					size = { height: th, width: tw };
-				}
-			}else {
-				size = { height: th, width: tw }	
+				size = { height: target.height, width: target.width };
+			if(size.width > ow) {
+				size = this.scale(size, ow, true);
+			}
+			if(size.height > oh) {
+				size = this.scale(size, oh, false);
 			}
 			return size;
 		},
@@ -85,19 +66,34 @@ var Widget = {};
 		}
 	}
 	
-	Widget.FaceCut = function(el, settings) {
+	Widget.ScreenShot = function(el, settings) {
 		settings = $.merge({
 			height: 'auto',
 			width: 'auto',
+			screenWidth: 400,
+			screenHeight: 350,
 			file: ''
 		}, settings);
 		if(!el || !settings.file || settings.file.constructor.toString().indexOf('File') == -1) { return; }
 		this.settings = settings;
 		this.el = typeof el === 'string' ? $.g(el) : el;
 		this.drawImage = null;
+		/**
+		 * 截图
+		 * <p>
+		 * imgInfo = {
+		 *     sx: 1, // 开始点X坐标
+		 *     sy: 1, // 开始点Y坐标
+		 *     sh: 20, // 截图宽度
+		 *     sw: 20 // 截图高度
+		 * }
+		 * </p>
+		 * @param {Object} imgInfo 截图信息
+		 */
+		this.cutImgInfo = { sx: 0, sy: 0, sw: settings.screenWidth, sh: settings.screenHeight };
 	};
 	
-	Widget.FaceCut.prototype = {
+	Widget.ScreenShot.prototype = {
 		fileRead: function() {
 			var file = this.settings.file;
 			if(!/image\/\w+/.test(file.type)){
@@ -125,6 +121,20 @@ var Widget = {};
 		},
 		exportImage: function() {
 			return this.drawImage.canvas.toDataURL();
+		},
+		cut: function() {
+			var settings = this.settings,
+				info = this.cutImgInfo,
+				width = settings.screenWidth,
+				height = settings.screenHeight,
+				cutter = $.createElement('canvas', {}, {
+					width: width,
+					height: height
+				}),
+				cutCtx = cutter.getContext('2d'),
+				canvas = this.drawImage.canvas;
+			cutCtx.drawImage(canvas, info.sx, info.sy, info.sw, info.sh, 0, 0, width, height);
+			return cutter.toDataURL();
 		},
 		clip: function() {
 			var ctx = this.drawImage.canvas.getContext('2d');
