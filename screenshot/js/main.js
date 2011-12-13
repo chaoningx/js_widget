@@ -21,11 +21,9 @@ var Widget = {};
 				width: width,
 				height: height
 			}),
-			ctx = canvas.getContext('2d'),
-			heightScale = size.height / img.height,
-			widthScale = size.width / img.width;
-			ctx.scale(widthScale, heightScale);
-			
+			ctx = canvas.getContext('2d');
+		
+		ctx.scale(size.width / img.width, size.height / img.height);
 		if(width >= size.width && height >= size.height) {
 			ctx.drawImage(img, (width - size.width) / 2, (height - size.height) / 2)
 		}else if(width >= size.width) {
@@ -33,6 +31,7 @@ var Widget = {};
 		}else {
 			ctx.drawImage(img, 0, (height - size.height) / 2)
 		}
+		// ctx.drawImage(img, 0, 0);
 		this.canvas = canvas;
 		this.ctx = ctx;
 	};
@@ -53,6 +52,10 @@ var Widget = {};
 			var ow = origin.width,
 				oh = origin.height,
 				size = { height: target.height, width: target.width };
+			
+			if(size.width < ow && size.height < oh) {
+				return { height: oh, width: ow };
+			}
 			if(size.width > ow) {
 				size = this.scale(size, ow, true);
 			}
@@ -70,11 +73,14 @@ var Widget = {};
 		settings = $.merge({
 			height: 'auto',
 			width: 'auto',
-			screenWidth: 400,
-			screenHeight: 350,
+			screenWidth: 200,
+			screenHeight: 200,
 			file: ''
 		}, settings);
 		if(!el || !settings.file || settings.file.constructor.toString().indexOf('File') == -1) { return; }
+		
+		
+		
 		this.settings = settings;
 		this.el = typeof el === 'string' ? $.g(el) : el;
 		this.drawImage = null;
