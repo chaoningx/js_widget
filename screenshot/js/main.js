@@ -101,8 +101,8 @@ var Widget = {};
 			width: 400,
 			selectWidth: 80,
 			selectHeight: 80,
-			selectMinWidth: 20,
-			selectMinHeight: 20,
+			selectMaxWidth: 160,
+			selectMaxHeight: 160,
 			file: '',
 			coverBgColor: 'rgba(0,0,0,0.4)',
 			selectBorderColor: 'white'
@@ -196,6 +196,9 @@ var Widget = {};
 			sctx.clearRect(x + 1, y + 1, settings.selectWidth - 2, settings.selectHeight - 2);
 			drawImage.getCtx().drawImage(selectCanvas, 0, 0);
 			this.selectPos = { x: x, y: y };
+		},
+		zoom: function() {
+			
 		},
 		bind: function() {
 			var me = this,
