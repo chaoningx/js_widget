@@ -209,7 +209,6 @@ var Widget = {};
 				ctx = canvas.getContext('2d');
 			ctx.fillStyle = '#000';
 			ctx.fillRect(0, 0, 10, 10);
-			document.body.appendChild(canvas);
 			return canvas;
 		},
 		bind: function() {
