@@ -18,14 +18,15 @@ var Widget = {};
 			canvas = $.createElement('canvas', {
 				cursor: 'default'
 			}, {
+				onselectstart: "return false;",
 				width: width,
 				height: height
 			}),
-			temp = $.createElement('canvas', {}, {
+			canvasHelper = $.createElement('canvas', {}, {
 				width: width,
 				height: height
 			}),
-			tctx = temp.getContext('2d'),
+			tctx = canvasHelper.getContext('2d'),
 			scaleX = size.width / img.width, 
 			scaleY =  size.height / img.height,
 			ctx = canvas.getContext('2d');
@@ -38,13 +39,26 @@ var Widget = {};
 		}else {
 			tctx.drawImage(img, 0, (height - size.height) / 2)
 		}
-		ctx.drawImage(temp, 0, 0);
-		// tctx.drawImage(img, 0, 0);
+		
 		this.canvas = canvas;
+		this.canvasHelper = canvasHelper;
 		this.ctx = ctx;
+		this.settings = settings;
+		this.paint();
 	};
 	
 	Widget.DrawImage.prototype = {
+		paint: function() {
+			this.clearCanvas();
+			this.ctx.drawImage(this.canvasHelper, 0, 0);
+		},
+		getCtx: function() {
+			return this.ctx;
+		},
+		clearCanvas: function() {
+			var settings = this.settings;
+			this.ctx.clearRect(0, 0, settings.width, settings.height);
+		},
 		scale: function(originSize, target, isWidth) {
 			var size = {};
 			if(isWidth) {
@@ -160,14 +174,15 @@ var Widget = {};
 		},
 		paintSelectArea: function(x, y) {
 			var settings = this.settings,
-				octx = this.drawImage.canvas.getContext('2d'),
+				drawImage = this.drawImage,
 				selectCanvas = this.selectCanvas,
 				sctx = this.sctx;
+			drawImage.paint();
 			sctx.clearRect(0, 0, settings.width, settings.height);
 			sctx.fillRect(0, 0, settings.width, settings.height);
 			sctx.strokeRect(x, y, settings.selectWidth, settings.selectHeight);
 			sctx.clearRect(x + 1, y + 1, settings.selectWidth - 2, settings.selectHeight - 2);
-			octx.drawImage(selectCanvas, 0, 0);
+			drawImage.getCtx().drawImage(selectCanvas, 0, 0);
 			this.selectPos = { x: x, y: y };
 		},
 		bind: function() {
@@ -175,7 +190,7 @@ var Widget = {};
 				canvas = this.drawImage.canvas,
 				start = 0,
 				end = 0,
-				pos = 0,
+				fixPos = 0,
 				sw = this.settings.selectWidth,
 				sh = this.settings.selectHeight,
 				timerId = 0,
@@ -186,7 +201,7 @@ var Widget = {};
 					return false;
 				},
 				move = function(e) {
-					me.paintSelectArea(e.offsetX, e.offsetY);
+					me.paintSelectArea(e.offsetX - fixPos.x, e.offsetY - fixPos.y);
 				};
 				
 			canvas.addEventListener('mousedown', function(e) {
@@ -194,10 +209,10 @@ var Widget = {};
 					start = me.selectPos;
 					end = { x: start.x + sw, y: start.y + sh };
 					if(isInRange(e.offsetX, e.offsetY, start, end)) {
-						pos = { x: start.x, y: start.y };
+						fixPos = { x: e.offsetX - start.x, y: e.offsetY - start.y };
 						canvas.addEventListener('mousemove', move, false);
 					}
-				}, 200);
+				}, 50);
 			}, false);
 			
 			canvas.addEventListener('mouseup', function(e) {
