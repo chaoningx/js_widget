@@ -11,38 +11,42 @@ var Widget = {};
 			width: 400
 		}, settings);
 		if(!settings.img || !settings.height || !settings.width) { return; }
-		var img = settings.img,
-			width = settings.width,
-			height = settings.height,
-			size = this.fixImage(settings, { width: img.width, height: img.height }),
+		var imgWidth = settings.img.width,
+			imgHeight = settings.img.height,
+			size = this.fixImage(settings, { width: imgWidth, height: imgHeight }),
 			canvas = $.createElement('canvas', {
 				cursor: 'default'
 			}, {
 				onselectstart: "return false;",
-				width: width,
-				height: height
+				width: settings.width,
+				height: settings.height
 			}),
 			canvasHelper = $.createElement('canvas', {}, {
-				width: width,
-				height: height
+				width: settings.width,
+				height: settings.height
 			}),
-			tctx = canvasHelper.getContext('2d'),
-			scaleX = size.width / img.width, 
-			scaleY =  size.height / img.height,
-			ctx = canvas.getContext('2d');
+			hctx = canvasHelper.getContext('2d'),
+			padding = { x: (settings.width - size.width) / 2, y: (settings.height - size.height) / 2 },
+			range = null;
 		
-		tctx.scale(scaleX, scaleY);
-		if(width >= size.width && height >= size.height) {
-			tctx.drawImage(img, (width - size.width) / 2, (height - size.height) / 2)
-		}else if(width >= size.width) {
-			tctx.drawImage(img, (width - size.width) / 2, 0)
+		if(settings.width >= size.width && settings.height >= size.height) {
+			range = { x: padding.x, y: padding.y };
+		}else if(settings.width >= size.width) {
+			range = { x: padding.x, y: 0 };
 		}else {
-			tctx.drawImage(img, 0, (height - size.height) / 2)
+			range = { x: 0, y: padding.y };
 		}
+		hctx.translate(range.x, range.y);
+		hctx.scale(size.width / imgWidth, size.height / imgHeight);
+		hctx.drawImage(settings.img, 0, 0);
 		
+		range.ex = range.x + settings.width - 2 * range.x;
+		range.ey = range.y + settings.height - 2 * range.y;
+		
+		this.range = range;
 		this.canvas = canvas;
 		this.canvasHelper = canvasHelper;
-		this.ctx = ctx;
+		this.ctx = canvas.getContext('2d');
 		this.settings = settings;
 		this.paint();
 	};
@@ -58,6 +62,9 @@ var Widget = {};
 		clearCanvas: function() {
 			var settings = this.settings;
 			this.ctx.clearRect(0, 0, settings.width, settings.height);
+		},
+		getRange: function() {
+			return this.range;
 		},
 		scale: function(originSize, target, isWidth) {
 			var size = {};
@@ -92,10 +99,12 @@ var Widget = {};
 	
 	Widget.ScreenShot = function(el, settings) {
 		settings = $.merge({
-			height: 'auto',
-			width: 'auto',
+			height: 400,
+			width: 400,
 			selectWidth: 80,
 			selectHeight: 80,
+			selectMinWidth: 20,
+			selectMinHeight: 20,
 			file: ''
 		}, settings);
 		if(!el || !settings.file || settings.file.constructor.toString().indexOf('File') == -1) { return; }
@@ -124,6 +133,7 @@ var Widget = {};
 		 */
 		this.selectPos = { x: 0, y: 0 };
 		this.selectCanvas = selectCanvas;
+		this.range = null;
 		this.sctx = sctx;
 	};
 	
@@ -134,8 +144,10 @@ var Widget = {};
 	            return "请确保文件为图像类型";
 	        }
 	        var me = this,
-	        	reader = new FileReader(),
-	        	el = this.el;
+	        	el = this.el,
+	        	settings = me.settings,
+	        	centerPoint = { x: (settings.width - settings.selectWidth) / 2, y: (settings.height - settings.selectHeight) / 2 },
+	        	reader = new FileReader();
 	        	
 	        reader.readAsDataURL(file);
 	        reader.onload = function() {
@@ -145,11 +157,13 @@ var Widget = {};
 	        			img: img,
 	        			height: me.settings.height,
 	        			width: me.settings.width
-	        		});
+	        		}),
+	        		range = drawImage.getRange();
 	        		el.innerHTML = '';
 	        		drawImage.appendTo(el);
 	        		me.drawImage = drawImage;
-	        		me.paintSelectArea(10, 10);
+	        		me.range = range;
+	        		me.paintSelectArea(centerPoint.x, centerPoint.y);
 	        		me.bind();
 	        	}
 	        	img.src = this.result;
@@ -161,15 +175,12 @@ var Widget = {};
 		done: function() {
 			var settings = this.settings,
 				info = this.selectPos,
-				width = settings.selectWidth,
-				height = settings.selectHeight,
 				cutter = $.createElement('canvas', {}, {
-					width: width,
-					height: height
+					width: settings.selectWidth,
+					height: settings.selectHeight
 				}),
-				cutCtx = cutter.getContext('2d'),
 				canvas = this.drawImage.canvas;
-			cutCtx.drawImage(canvas, info.x, info.y, width, height, 0, 0, width, height);
+			cutter.getContext('2d').drawImage(canvas, info.x, info.y, settings.selectWidth, settings.selectHeight, 0, 0, settings.selectWidth, settings.selectHeight);
 			return cutter.toDataURL();
 		},
 		paintSelectArea: function(x, y) {
@@ -187,39 +198,68 @@ var Widget = {};
 		},
 		bind: function() {
 			var me = this,
+				settings = this.settings,
 				canvas = this.drawImage.canvas,
-				start = 0,
-				end = 0,
+				imageArea = this.range,
+				moveRange = null,
+				selectPos = null,
 				fixPos = 0,
-				sw = this.settings.selectWidth,
-				sh = this.settings.selectHeight,
 				timerId = 0,
-				isInRange = function(x, y, start, end) {
-					if(x >= start.x && x <= end.x && y >= start.y && y <= end.y) {
+				isInRange = function(x, y, range) {
+					if(x >= range.x && x <= range.ex && y >= range.y && y <= range.ey) {
 						return true;
 					}
 					return false;
 				},
+				updateMoveRange = function(selectWidth, selectHeight) {
+					moveRange = { x: imageArea.x, y: imageArea.y, ex: imageArea.ex - selectWidth, ey: imageArea.ey - selectHeight };
+				},
 				move = function(e) {
-					me.paintSelectArea(e.offsetX - fixPos.x, e.offsetY - fixPos.y);
-				};
+					var x = e.offsetX, y = e.offsetY;
+					
+					x = x - fixPos.x;
+					y = y - fixPos.y;
+					
+					if(x < moveRange.x) {
+						x = moveRange.x
+					}else if(x > moveRange.ex) {
+						x = moveRange.ex;
+					}
+					if(y < moveRange.y) {
+						y = moveRange.y
+					}else if(y > moveRange.ey) {
+						y = moveRange.ey
+					}
+					me.paintSelectArea(x, y);
+				},
+				stop = function() {
+					clearTimeout(timerId);
+					canvas.removeEventListener('mousemove', move, false);
+				},
+				flag = false;
+			console.log(imageArea);
+			updateMoveRange(settings.selectWidth, settings.selectHeight);
 				
 			canvas.addEventListener('mousedown', function(e) {
 				timerId = setTimeout(function() {
-					start = me.selectPos;
-					end = { x: start.x + sw, y: start.y + sh };
-					if(isInRange(e.offsetX, e.offsetY, start, end)) {
-						fixPos = { x: e.offsetX - start.x, y: e.offsetY - start.y };
+					flag = true;
+					selectPos = me.selectPos;
+					var selectBoxRange = { x: selectPos.x, y: selectPos.y, ex: selectPos.x + settings.selectWidth, ey: selectPos.y + settings.selectHeight };
+					if(isInRange(e.offsetX, e.offsetY, selectBoxRange)) {
+						fixPos = { x: e.offsetX - selectPos.x, y: e.offsetY - selectPos.y};
 						canvas.addEventListener('mousemove', move, false);
 					}
 				}, 50);
 			}, false);
 			
 			canvas.addEventListener('mouseup', function(e) {
-				clearTimeout(timerId);
-				canvas.removeEventListener('mousemove', move, false);
+				if(!flag) { return; }
+				stop();
 			}, false);
-			// canvas.addEventListener('mousemove', function() {}, false);
+			
+			canvas.addEventListener('mouseout', function() {
+				stop();
+			}, false);
 		}
 	}
 })();
