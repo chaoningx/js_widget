@@ -3,7 +3,6 @@
  */
 var Widget = {};
 (function() {
-	
 	Widget.DrawImage = function(settings) {
 		settings = $.merge({
 			img: '',
@@ -50,7 +49,6 @@ var Widget = {};
 		this.settings = settings;
 		this.paint();
 	};
-	
 	Widget.DrawImage.prototype = {
 		paint: function() {
 			this.clearCanvas();
@@ -105,7 +103,9 @@ var Widget = {};
 			selectHeight: 80,
 			selectMinWidth: 20,
 			selectMinHeight: 20,
-			file: ''
+			file: '',
+			coverBgColor: 'rgba(0,0,0,0.4)',
+			selectBorderColor: 'white'
 		}, settings);
 		if(!el || !settings.file || settings.file.constructor.toString().indexOf('File') == -1) { return; }
 		
@@ -117,8 +117,8 @@ var Widget = {};
 			}),
 			sctx = selectCanvas.getContext('2d');
 			
-		sctx.strokeStyle = "white";
-		sctx.fillStyle = 'rgba(0,0,0,0.5)';
+		sctx.strokeStyle = settings.selectBorderColor;
+		sctx.fillStyle = settings.coverBgColor;
 		
 		this.drawImage = null;
 		/**
@@ -141,7 +141,8 @@ var Widget = {};
 		init: function() {
 			var file = this.settings.file;
 			if(!/image\/\w+/.test(file.type)){
-	            return "请确保文件为图像类型";
+	             alert("请确保文件为图像类型");
+	             return false;
 	        }
 	        var me = this,
 	        	el = this.el,
@@ -216,10 +217,8 @@ var Widget = {};
 				},
 				move = function(e) {
 					var x = e.offsetX, y = e.offsetY;
-					
 					x = x - fixPos.x;
 					y = y - fixPos.y;
-					
 					if(x < moveRange.x) {
 						x = moveRange.x
 					}else if(x > moveRange.ex) {
@@ -237,7 +236,7 @@ var Widget = {};
 					canvas.removeEventListener('mousemove', move, false);
 				},
 				flag = false;
-			console.log(imageArea);
+				
 			updateMoveRange(settings.selectWidth, settings.selectHeight);
 				
 			canvas.addEventListener('mousedown', function(e) {
