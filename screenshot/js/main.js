@@ -135,6 +135,7 @@ var Widget = {};
 		this.selectCanvas = selectCanvas;
 		this.range = null;
 		this.sctx = sctx;
+		this.zoomRect = this.zoom();
 	};
 	
 	Widget.ScreenShot.prototype = {
@@ -194,11 +195,22 @@ var Widget = {};
 			sctx.fillRect(0, 0, settings.width, settings.height);
 			sctx.strokeRect(x, y, settings.selectWidth, settings.selectHeight);
 			sctx.clearRect(x + 1, y + 1, settings.selectWidth - 2, settings.selectHeight - 2);
+			
+			sctx.drawImage(this.zoomRect, x + settings.width - 20, y + settings.height - 20);
+			
 			drawImage.getCtx().drawImage(selectCanvas, 0, 0);
 			this.selectPos = { x: x, y: y };
 		},
 		zoom: function() {
-			
+			var canvas = $.createElement('canvas', {}, {
+					width: 10,
+					height: 10
+				}),
+				ctx = canvas.getContext('2d');
+			ctx.fillStyle = '#000';
+			ctx.fillRect(0, 0, 10, 10);
+			document.body.appendChild(canvas);
+			return canvas;
 		},
 		bind: function() {
 			var me = this,
