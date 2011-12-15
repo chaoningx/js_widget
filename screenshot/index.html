@@ -4,20 +4,24 @@
 		<meta charset="utf-8" />
 		<title>index</title>
 		<style>
-			*{ padding: 0; margin: 0; }
-			#clip{ padding: 2px 8px; }
+			*{ padding: 0; margin: 0; outline: none; border: none; font-size: 12px; }
+			#canvas-container{ width: 500px; top: 20px; left: 50px; position: absolute; }
+			#imgList{ margin: 50px 570px; width: 400px; float: left; display: inline; }
+			#imgList img{ margin: 0 10px 10px 0; float: left; display: inline; }
+			#clip{ width: 80px; height: 22px; font-weight: bold; color: #fff; line-height: 22px; background-color: rgba(0,0,0,0.6); border: 1px solid #333; float:right; }
 			#result{ padding: 10px 0; }
 		</style>
 	<body>
-		<div style="width: 600px; margin: 20px auto;">
+		<div id="canvas-container">
 			<input type="file" id="file_input" multiple/>
 			<input type="button" value="clip" id="clip"/>
-			<div id="result" onselectstart="return false;">
-		          <!-- 这里用来显示读取结果 -->
-		    </div>
+			<div id="result" onselectstart="return false;"></div>
+	    </div>
+	    <div id="imgList">
+	    	
 	    </div>
 	    <script src="js/Query.js"></script>
-	    <script src="js/main.js"></script>
+	    <script src="js/main.js_com.js"></script>
 		<script>
 			(function() {
 				var input = document.getElementById('file_input');
@@ -25,16 +29,16 @@
 					var me = this,
 						fc = new Widget.ScreenShot('result', {
 							file: me.files[0],
-							height: 600,
-							width: 600
+							height: 500,
+							width: 500
 						});
 					fc.init();
 					$.g('clip').onclick = function() {
 						// fc.clip();
 						var img = new Image(),
-							src = fc.done();
+							src = fc.clip();
 						img.src = src;
-						document.body.appendChild(img);
+						$.g('imgList').appendChild(img);
 					}
 				}, false);
 			})();
