@@ -104,6 +104,7 @@ var Widget = {};
 			selectMaxWidth: 160,
 			selectMaxHeight: 160,
 			file: '',
+			isZoomByRect: true,
 			coverBgColor: 'rgba(0,0,0,0.4)',
 			selectBorderColor: 'white'
 		}, settings);
@@ -136,6 +137,7 @@ var Widget = {};
 		this.range = null;
 		this.sctx = sctx;
 		this.zoomRect = this.zoom();
+		this.selectMinSise = { width: settings.selectWidth, height: settings.selectHeight };
 	};
 	
 	Widget.ScreenShot.prototype = {
@@ -165,7 +167,7 @@ var Widget = {};
 	        		drawImage.appendTo(el);
 	        		me.drawImage = drawImage;
 	        		me.range = range;
-	        		me.paintSelectArea(centerPoint.x, centerPoint.y);
+	        		me.paintSelectArea(centerPoint.x, centerPoint.y, true);
 	        		me.bind();
 	        	}
 	        	img.src = this.result;
@@ -174,7 +176,7 @@ var Widget = {};
 		exportImage: function() {
 			return this.drawImage.canvas.toDataURL();
 		},
-		done: function() {
+		clip: function() {
 			var settings = this.settings,
 				info = this.selectPos,
 				cutter = $.createElement('canvas', {}, {
@@ -182,22 +184,23 @@ var Widget = {};
 					height: settings.selectHeight
 				}),
 				canvas = this.drawImage.canvas;
+			this.paintSelectArea(info.x, info.y, false);
 			cutter.getContext('2d').drawImage(canvas, info.x, info.y, settings.selectWidth, settings.selectHeight, 0, 0, settings.selectWidth, settings.selectHeight);
+			this.paintSelectArea(info.x, info.y, true);
 			return cutter.toDataURL();
 		},
-		paintSelectArea: function(x, y) {
+		paintSelectArea: function(x, y, isAddZoom) {
 			var settings = this.settings,
 				drawImage = this.drawImage,
 				selectCanvas = this.selectCanvas,
 				sctx = this.sctx;
+				
 			drawImage.paint();
 			sctx.clearRect(0, 0, settings.width, settings.height);
 			sctx.fillRect(0, 0, settings.width, settings.height);
 			sctx.strokeRect(x, y, settings.selectWidth, settings.selectHeight);
 			sctx.clearRect(x + 1, y + 1, settings.selectWidth - 2, settings.selectHeight - 2);
-			
-			sctx.drawImage(this.zoomRect, x + settings.width - 20, y + settings.height - 20);
-			
+			isAddZoom && sctx.drawImage(this.zoomRect, x + settings.selectWidth - 11, y + settings.selectHeight - 11);
 			drawImage.getCtx().drawImage(selectCanvas, 0, 0);
 			this.selectPos = { x: x, y: y };
 		},
@@ -207,18 +210,56 @@ var Widget = {};
 					height: 10
 				}),
 				ctx = canvas.getContext('2d');
-			ctx.fillStyle = '#000';
-			ctx.fillRect(0, 0, 10, 10);
+			ctx.strokeStyle = '#000';
+			ctx.beginPath();
+			ctx.moveTo(0, 10);
+			ctx.lineTo(10, 0);
+			ctx.moveTo(5, 10);
+			ctx.lineTo(10, 5);
+			ctx.stroke();
 			return canvas;
+		},
+		zoomByRect: function(x, y) {
+			var settings = this.settings,
+				selectMinSise = this.selectMinSise;
+				
+			if(x < selectMinSise.width) {
+				x = settings.selectWidth;
+			}else if(x > settings.selectMaxWidth) {
+				x = settings.selectMaxWidth
+			}
+					
+			this.settings.selectWidth = x;
+			this.settings.selectHeight = x;
+		},
+		zoomByFree: function(x, y) {
+			var settings = this.settings,
+				selectMinSise = this.selectMinSise;
+				
+			if(x < selectMinSise.width) {
+				x = settings.selectWidth;
+			}else if(x > settings.selectMaxWidth) {
+				x = settings.selectMaxWidth
+			}
+					
+			if(y < selectMinSise.height) {
+				y = settings.selectHeight;
+			}else if(y > settings.selectMaxHeight) {
+				y = settings.selectMaxHeight
+			}
+			this.settings.selectWidth = x;
+			this.settings.selectHeight = y;
 		},
 		bind: function() {
 			var me = this,
 				settings = this.settings,
+				selectMinSise = this.selectMinSise,
 				canvas = this.drawImage.canvas,
 				imageArea = this.range,
+				selectBoxRange = null,
 				moveRange = null,
 				selectPos = null,
-				fixPos = 0,
+				clickPos = 0,
 				timerId = 0,
 				isInRange = function(x, y, range) {
 					if(x >= range.x && x <= range.ex && y >= range.y && y <= range.ey) {
@@ -226,13 +267,13 @@ var Widget = {};
 					}
 					return false;
 				},
-				updateMoveRange = function(selectWidth, selectHeight) {
-					moveRange = { x: imageArea.x, y: imageArea.y, ex: imageArea.ex - selectWidth, ey: imageArea.ey - selectHeight };
+				updateMoveRange = function() {
+					moveRange = { x: imageArea.x, y: imageArea.y, ex: imageArea.ex - settings.selectWidth, ey: imageArea.ey - settings.selectHeight };
 				},
 				move = function(e) {
 					var x = e.offsetX, y = e.offsetY;
-					x = x - fixPos.x;
-					y = y - fixPos.y;
+					x = x - clickPos.x + selectPos.x;
+					y = y - clickPos.y + selectPos.y;
 					if(x < moveRange.x) {
 						x = moveRange.x
 					}else if(x > moveRange.ex) {
@@ -243,23 +284,42 @@ var Widget = {};
 					}else if(y > moveRange.ey) {
 						y = moveRange.ey
 					}
-					me.paintSelectArea(x, y);
+					me.paintSelectArea(x, y, true);
 				},
 				stop = function() {
 					clearTimeout(timerId);
 					canvas.removeEventListener('mousemove', move, false);
+					canvas.removeEventListener('mousemove', zoomUpdate, false);
+					updateMoveRange();
+				},
+				zoomUpdate = function(e) {
+					var x = e.offsetX, y = e.offsetY;
+					if(!isInRange(x, y, imageArea)) {
+						return false;
+					}
+					x = x - clickPos.x + clickPos.currentSelectWidth;
+					y = y - clickPos.y + clickPos.currentSelectHeight;
+					if(settings.isZoomByRect) {
+						me.zoomByRect(x, y);
+					}else {
+						me.zoomByFree(x, y);
+					}
+					me.paintSelectArea(selectPos.x, selectPos.y, true);
 				},
 				flag = false;
 				
-			updateMoveRange(settings.selectWidth, settings.selectHeight);
-				
+			updateMoveRange();
 			canvas.addEventListener('mousedown', function(e) {
 				timerId = setTimeout(function() {
 					flag = true;
 					selectPos = me.selectPos;
-					var selectBoxRange = { x: selectPos.x, y: selectPos.y, ex: selectPos.x + settings.selectWidth, ey: selectPos.y + settings.selectHeight };
-					if(isInRange(e.offsetX, e.offsetY, selectBoxRange)) {
-						fixPos = { x: e.offsetX - selectPos.x, y: e.offsetY - selectPos.y};
+					var	selectBoxRange = { x: selectPos.x, y: selectPos.y, ex: selectPos.x + settings.selectWidth, ey: selectPos.y + settings.selectHeight },
+						zoomRange = { x: selectPos.x + settings.selectWidth - 10, y: selectPos.y + settings.selectHeight - 10, ex: selectPos.x + settings.selectWidth, ey: selectPos.y + settings.selectHeight };
+					if(isInRange(e.offsetX, e.offsetY, zoomRange)) {
+						clickPos = { x: e.offsetX, y: e.offsetY, currentSelectWidth: me.settings.selectWidth, currentSelectHeight: me.settings.selectHeight };
+						canvas.addEventListener('mousemove', zoomUpdate, false);
+					}else if(isInRange(e.offsetX, e.offsetY, selectBoxRange)) {
+						clickPos = { x: e.offsetX, y: e.offsetY};
 						canvas.addEventListener('mousemove', move, false);
 					}
 				}, 50);
