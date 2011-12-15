@@ -315,6 +315,7 @@ var Widget = {};
 					selectPos = me.selectPos;
 					var	selectBoxRange = { x: selectPos.x, y: selectPos.y, ex: selectPos.x + settings.selectWidth, ey: selectPos.y + settings.selectHeight },
 						zoomRange = { x: selectPos.x + settings.selectWidth - 10, y: selectPos.y + settings.selectHeight - 10, ex: selectPos.x + settings.selectWidth, ey: selectPos.y + settings.selectHeight };
+					console.log(e);
 					if(isInRange(e.offsetX, e.offsetY, zoomRange)) {
 						clickPos = { x: e.offsetX, y: e.offsetY, currentSelectWidth: me.settings.selectWidth, currentSelectHeight: me.settings.selectHeight };
 						canvas.addEventListener('mousemove', zoomUpdate, false);
