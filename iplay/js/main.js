@@ -68,29 +68,34 @@ Widget.Iplay.prototype = {
 		settings.loop && v.setAttribute('loop', 'loop');
 		settings.poster && v.setAttribute('poster', settings.poster);
 		
-		if(!settings.controls) {
-			v.addEventListener('loadedmetadata',function(){
-				var box = me.box;
-				me.duration = v.duration;
-				box.appendChild(me.controlView());
-				box.appendChild(me.processView());
-				box.addEventListener('mouseover', function() {
-					me.process.style.bottom = settings.icontrolHeight + 'px';
-				});
-				box.addEventListener('mouseout', function() {
-					me.process.style.bottom = settings.icontrolHeight - 4 + 'px';
-				});
-				v.addEventListener('timeupdate', function(){
-					var ct = v.currentTime;
-					me.currentTimeBox.innerHTML = $.secondFormat(ct);
-					me.processBox.style.width = parseInt(ct / me.duration * settings.width) + 'px';
-					me.buffer.style.width = parseInt(v.buffered.end() / me.duration * settings.width) + 'px';
-				});
-			}, false);
-		}
 		this.box.style.display = 'block';
 		this.box.innerHTML = '';
 		this.box.appendChild(v);
+	},
+	bind: function() {
+		if(this.settings.controls) { return; }
+		var me = this,
+			settings = this.settings,
+			v = this.video;
+			
+		v.addEventListener('loadedmetadata',function() {
+			var box = me.box;
+			me.duration = this.duration;
+			box.appendChild(me.controlView());
+			box.appendChild(me.processView());
+			box.addEventListener('mouseover', function() {
+				me.process.style.bottom = settings.icontrolHeight + 'px';
+			});
+			box.addEventListener('mouseout', function() {
+				me.process.style.bottom = settings.icontrolHeight - 4 + 'px';
+			});
+			this.addEventListener('timeupdate', function(){
+				var ct = this.currentTime;
+				me.currentTimeBox.innerHTML = $.secondFormat(ct);
+				me.processBox.style.width = parseInt(ct / me.duration * settings.width) + 'px';
+				me.buffer.style.width = parseInt(this.buffered.end(0) / me.duration * settings.width) + 'px';
+			});
+		}, false);
 	},
 	controlView: function() {
 		var settings = this.settings,
@@ -307,15 +312,6 @@ Widget.Iplay.prototype = {
 		return box;
 	}
 };
-})();
-
-(function(){
-	var gallery = document.getElementById('gallery');
-	gallery.style.width = document.body.scrollWidth + 'px';
-	var	v5 = new Widget.Iplay('video', { controls: false, shotWidth: 200, shotHeight: 150, poster: 'source/onload.jpg', shotCallback: function(v) {
-		gallery.insertBefore(v, gallery.firstChild);
-	} });
-	v5.render('source/boy.mp4');
 })();
 
 

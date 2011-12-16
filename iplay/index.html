@@ -38,5 +38,27 @@
 <div id="video"></div>
 <script src="../base/Query.js"></script>
 <script src="js/main.js"></script>
+<script>
+	$(function() {
+		var gallery = document.getElementById('gallery'),
+			data = [
+				{
+					poster: 'source/boy_preload.jpg',
+					url: 'source/boy.mp4'
+				},
+				{
+					poster: 'source/cartoon_preload.png',
+					url: 'http://www.craftymind.com/factory/html5video/BigBuckBunny_640x360.mp4'
+				}
+			],
+			video = data[1];
+		gallery.style.width = document.body.scrollWidth + 'px';
+		var	v5 = new Widget.Iplay('video', { controls: false, shotWidth: 200, shotHeight: 150, poster: video.poster, shotCallback: function(v) {
+			gallery.insertBefore(v, gallery.firstChild);
+		} });
+		v5.render(video.url);
+		v5.bind();
+	});
+</script>
 </body> 
 </html>
