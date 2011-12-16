@@ -11,7 +11,6 @@
 		#gallery{ position: absolute; left: 0; top: 10px; }
 		#gallery canvas{ margin: 5px 5px 0 0; border: 1px solid #000; }
 		.iplay-box{ background-color: #000; border: 1px solid #000; -webkit-user-select: none; }
-		.iplay-control{ background-color: #000; }
 		.iplay-png{ background: url("source/iplay.png") no-repeat transparent; width: 30px; height: 30px; cursor: pointer; }
 		.iplay-play{ background-position: 7px 7px; left: 15px; }
 		.iplay-play:hover{ background-position: -26px 7px; }
@@ -25,11 +24,13 @@
 		.iplay-voice1{ background-position: 7px -107px; }
 		.iplay-voice2{ background-position: 7px -86px; }
 		.iplay-voice3{ background-position: 7px -63px; }
-		
 		.iplay-duration{ width: 130px; color: #ccc; font-size: 12px; text-align: center; border-left: 1px solid #333; }
-		.iplay-processbox{ background-color: #333; }
-		.iplay-process{ background-color: yellow; }
-		.iplay-buffer{ background-color: #555; }
+		.iplay-process-box{ background-color: #333; height: 6px; position: absolute; overflow: hidden; z-index: 9; }
+		.iplay-process-moving{ background-color: yellow; position: absolute; top: 0; left: 0; z-index: 8; height: 6px; width: 0; border-right: 2px solid #fff; }
+		.iplay-process-buffer{ background-color: #555; position: absolute; left: 0; top: 0; z-index: 7; height: 6px; }
+		.iplay-duration-time{ float: left; width: 50px; padding-left: 10px }
+		.iplay-duration-line{ float: left; width: 10px; }
+		.iplay-bar{ position: absolute; left: 0; bottom: 0; z-index: 10; background-color: #000; }
 	</style>
 </head> 
 <body>

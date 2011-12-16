@@ -17,7 +17,7 @@ Widget.Iplay = function(el, settings) {
 		controls: true,
 		autoplay: false,
 		icontrolHeight: 35,
-		icontrolCss: 'iplay-control',
+		icontrolCss: '',
 		boxCss: 'iplay-box',
 		shotWidth: false,
 		shotHeight: false,
@@ -40,13 +40,13 @@ Widget.Iplay = function(el, settings) {
 			height: settings.height + settings.icontrolHeight + 'px',
 			display: 'none',
 			overflow: 'hidden'
-		});
+		}),
+		height = height = settings.icontrolHeight - 30;
 	$.addClass(box, settings.boxCss);
 	this.settings = settings;
 	this.box = box;
 	this.video = document.createElement('video');
 	this.el.appendChild(this.box);
-	var height = settings.icontrolHeight - 30;
 	this.iconTop = parseInt(height / 2 + height % 2) + 'px';
 };
 Widget.Iplay.prototype = {
@@ -76,16 +76,16 @@ Widget.Iplay.prototype = {
 				box.appendChild(me.processView());
 				box.addEventListener('mouseover', function() {
 					me.process.style.bottom = settings.icontrolHeight + 'px';
-				}, false);
+				});
 				box.addEventListener('mouseout', function() {
 					me.process.style.bottom = settings.icontrolHeight - 4 + 'px';
-				}, false);
+				});
 				v.addEventListener('timeupdate', function(){
 					var ct = v.currentTime;
 					me.currentTimeBox.innerHTML = $.secondFormat(ct);
 					me.processBox.style.width = parseInt(ct / me.duration * settings.width) + 'px';
 					me.buffer.style.width = parseInt(v.buffered.end() / me.duration * settings.width) + 'px';
-				}, false);
+				});
 			}, false);
 		}
 		this.box.style.display = 'block';
@@ -95,20 +95,16 @@ Widget.Iplay.prototype = {
 	controlView: function() {
 		var settings = this.settings,
 			bar = $.createElement('div', {
-				position: 'absolute',
 				width: settings.width + 'px',
 				height: settings.icontrolHeight + 'px',
 				lineHeight: settings.icontrolHeight + 'px',
-				left: 0,
-				bottom: 0,
-				zIndex: '10'
+			}, {
+				'class': 'iplay-bar' + (settings.icontrolCss && ' ' + settings.icontrolCss)
 			});
-		$.addClass(bar, settings.icontrolCss);
 		$.append(
 			bar, 
 			this.playBtn(), 
 			this.durationView(), 
-			
 			this.voiceView(),
 			this.operaView(),
 			this.shotView()
@@ -124,63 +120,40 @@ Widget.Iplay.prototype = {
 				height: settings.icontrolHeight + 'px',
 				lineHeight: settings.icontrolHeight + 'px'
 			}),
-			lbox = $.createElement('div', {
-				"float": 'left',
-				width: '50px',
-				paddingLeft: '10px'
-			}),
-			mbox = $.createElement('div', {
-				"float": 'left',
-				width: '10px'
-			}),
-			rbox = $.createElement('div', {
-				"float": 'left',
-				width: '50px'
-			});
+			done = document.createElement('div'),
+			splitLine = document.createElement('div'),
+			totalTime = document.createElement('div');
+			
+		$.addClass(box, 'iplay-duration');	
+		$.addClass(done, 'iplay-duration-time');
+		$.addClass(splitLine, 'iplay-duration-line');
+		$.addClass(totalTime, 'iplay-duration-time');
+		
+		totalTime.innerHTML = $.secondFormat(this.duration);
+		splitLine.innerHTML = '/';
+		done.innerHTML = '00:00:00';
 		$.addClass(box, 'iplay-duration');
-		rbox.innerHTML = $.secondFormat(this.duration);
-		mbox.innerHTML = '/';
-		lbox.innerHTML = '00:00:00';
-		$.addClass(box, 'iplay-duration');
-		box.appendChild(lbox);
-		box.appendChild(mbox);
-		box.appendChild(rbox);
-		this.currentTimeBox = lbox;
+		$.append(box, done, splitLine, totalTime);
+		this.currentTimeBox = done;
 		return box;
 	},
 	processView: function() {
 		var me = this,
 			settings = this.settings,
 			box = $.createElement('div', {
-				height: '6px',
-				position: 'absolute',
-				overflow: 'hidden',
 				bottom: settings.icontrolHeight - 4 + 'px',
 				width: settings.width + 'px',
-				zIndex: '9'
+			}, {
+				'class': 'iplay-process-box'
 			}),
 			warp = $.createElement('div', {
 				position: 'relative'
 			}),
-			buffer = $.createElement('div', {
-				position: 'absolute',
-				left: 0,
-				top: 0,
-				zIndex: '7',
-				height: '6px'
-			}),
-			pro = $.createElement('div', {
-				position: 'absolute',
-				top: 0,
-				left: 0,
-				height: '6px',
-				width: '0',
-				zIndex: '8',
-				borderRight: '2px solid #fff'
-			});
-		$.addClass(box, 'iplay-processbox');
-		$.addClass(pro, 'iplay-process');
-		$.addClass(buffer, 'iplay-buffer');
+			buffer = document.createElement('div'),
+			pro = document.createElement('div');
+			
+		$.addClass(pro, 'iplay-process-moving');
+		$.addClass(buffer, 'iplay-process-buffer');
 		box.addEventListener('click', function(e) {
 			me.video.currentTime = parseInt(e.offsetX * me.duration / settings.width);
 			pro.style.width = e.offsetX + 'px';
@@ -212,9 +185,17 @@ Widget.Iplay.prototype = {
 				}
 			};
 		$.addClass(play, 'iplay-png', 'iplay-play'); //iplay-pause
-		play.onclick = function() {
-			toggle();
-		};
+		play.addEventListener('click', function() {
+			if(i % 2 == 0) {
+				me.video.play();
+				$.replaceClass(play, 'iplay-play', 'iplay-pause');
+				i++;
+			}else {
+				me.video.pause();
+				$.replaceClass(play, 'iplay-pause', 'iplay-play');
+				i--;
+			}
+		});
 		return play;
 	},
 	iconBuilder: function(css, pros, className) {
@@ -229,46 +210,42 @@ Widget.Iplay.prototype = {
 				margin: me.iconTop +' 0 0 0',
 				display: 'inline'
 			}, css);
-			settings = this.settings,
 			box = $.createElement('div', css, pros);
 		$.addClass(box, 'iplay-png', className);
 		return box;
 	},
 	shotView: function() {
-		var box = this.iconBuilder({}, { title: '截图分享' }, 'iplay-shot'),
-			me = this,
-			settings = this.settings;
+		var me = this,
+			settings = this.settings,
+			box = this.iconBuilder({}, { title: '截图分享' }, 'iplay-shot');
 			
 		this.scaleWidth = settings.shotWidth ? settings.shotWidth / settings.width : 1,
 		this.scaleHeight = settings.shotHeight ? settings.shotHeight / settings.height : 1;
 		
 		box.addEventListener('click', function() {
-			me.shotImg(me);
+			me.shotImg();
 		}, false);
 		return box;
 	},
-	shotImg: function(scope) {
-		var me = scope ? scope :this,
-			settings = me.settings,
+	shotImg: function() {
+		var settings = this.settings,
 			canvas = $.createElement('canvas', {
 			}, {
 				width: settings.shotWidth,
 				height: settings.shotHeight
 			}),
 			ctx = canvas.getContext('2d');
-		ctx.scale(me.scaleWidth, me.scaleHeight);
-		ctx.drawImage(me.video, 0, 0, settings.width, settings.height);
+		ctx.scale(this.scaleWidth, this.scaleHeight);
+		ctx.drawImage(this.video, 0, 0, settings.width, settings.height);
 		settings.shotCallback && settings.shotCallback(canvas);
 	},
 	operaView: function() {
-		var box = this.iconBuilder({}, { title: '功能设置' }, 'iplay-opera');
-		return box;
+		return this.iconBuilder({}, { title: '功能设置' }, 'iplay-opera');
 	},
 	voiceView: function() {
-		var me = this,
-			box = $.createElement('div', {
+		var box = $.createElement('div', {
 				"float": "right",
-				margin: me.iconTop +' 0 0 0',
+				margin: this.iconTop +' 0 0 0',
 				display: 'inline',
 				height: '30px'
 			}),
@@ -293,7 +270,6 @@ Widget.Iplay.prototype = {
 			setCss = function(css) {
 				$.replaceClass(icon, /(iplay-voice0)|(iplay-voice1)|(iplay-voice2)|(iplay-voice3)/, css);
 			};
-		
 		$.addClass(icon, getCssByMute(volume));
 		icon.addEventListener('click', function() {
 			if(i % 2 == 0) {
