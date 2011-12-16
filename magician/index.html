@@ -4,8 +4,19 @@
 		<meta charset="utf-8" />
 		<title>magician</title>
 		<meta name="author" content="xiechaoning" />
+		<link rel="stylesheet" href="css/main.css" type="text/css" media="screen" charset="utf-8" />
+		<link rel="stylesheet" href="css/ui.css" type="text/css" media="screen" charset="utf-8" />
 	</head>
 	<body>
-		
+		<script src="../base/Query.js"></script>
+		<script src="js/main.js"></script>
+		<script>
+			$(function(){
+				document.body.style.height = document.height + 'px';
+				document.body.style.width = document.wdith + 'px';
+				var btn = new UI.Button();
+				btn.appendTo(document.body);
+			});
+		</script>
 	</body>
 </html>

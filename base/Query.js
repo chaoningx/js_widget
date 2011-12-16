@@ -553,101 +553,31 @@ Query.extend({
             o[i] = obj[i];
         }
         return o;
-    }
-});
-
-/**
- * 动画部分
- */
-Query.extend({
-    animate: function(el, pos, duration, callback) {
-        if(!el) { return; }
-        pos = Query.merge({ 
-            left: '', //+=50
-            top: '',
-            opacity: ''
-        }, pos);
-        
-        var rate = 25,
-            speed = ({ slow: 600, normal: 400, fast: 200 })[duration];
-        speed = speed ? speed : duration;
-        var count = speed / rate + speed % rate,
-            timerId,
-            merge = function(s, t) {
-                s = s ? s : 0;
-        		if(t.indexOf('=') != -1) {
-                    var arr = t.split('='), n = Number(arr[1]);
-                    return arr[0] === '-' ? s - n : s + n;
-        		}else {
-                    return t;
+    },
+    addClass: function(el, className) {
+    	var names = el.className;
+		el.className = names == '' ? className : names + ' ' + className; 
+		return this;
+    },
+    removeClass: function(el, name) {
+    	if(!Query.hasClass(el, name)) {
+    		return false;
+    	}
+		var className, j, names = (name || '').split(' '), len = names.length;
+        if(el.nodeType === 1 && el.className) {
+            if(name) {
+                className = " " + el.className + " ";
+                for(j = 0; j < len; j++) {
+                    className = className.replace(' ' + names[j] + ' ', ' ');
                 }
-            },
-            runTime = function (fn) {
-                 timerId = setInterval(function() {
-                    if(count-- < 1) {
-                        clearInterval(timerId);
-                        callback && callback();
-                        return ;
-                    }
-                    fn();
-                }, 25);
-            },
-            target = {},
-            runMathod = {};
-        
-        if(pos.opacity !== '') {
-            target.opacity = parseFloat(pos.opacity);
-            target.originOpacity = parseFloat(Query.css(el, 'opacity'));
-            target.opacitySpeedUp = Math.abs(target.opacity - target.originOpacity) / count;
-            var high = function() {
-                    target.originOpacity += target.opacitySpeedUp;
-	            },
-	            low = function() {
-                    target.originOpacity -= target.opacitySpeedUp;
-                },
-                fn = target.opacity > target.originOpacity ? high : low;
-            runMathod.opacityFn = function() {
-                fn();
-                el.style.opacity = target.originOpacity;
-            };
-        };
-        
-        if(pos.left) {
-            target.left = merge(target.left, pos.left);
-            var left = Query.css(el, 'left');
-            target.originLeft = parseFloat(left === "auto" ? 0 : left);
-            target.leftSpeedUp = Math.abs(target.left - target.originLeft) / count;
-            var high = function() {
-                    target.originLeft += target.leftSpeedUp;
-                },
-                low = function() {
-                    target.originLeft -= target.leftSpeedUp;
-                },
-                fn = target.left > target.originLeft ? high : low;
-            runMathod.leftFn = function() {
-                fn();
-                el.style.left = target.originLeft;
-            };
-        }
-//        pos.left && merge('target.left', 'pos.left');
-//        pos.top && merge('target.top', 'pos.top');
-        
-        runTime(function() {
-            for(var i in runMathod) {
-                runMathod[i]();
+                el.className = Query.trim(className);
+            }else {
+                el.className = '';
             }
-        });
-//            if(target.opacity > opacity) {
-//				runTime(function() {
-//                    opacity += speedUp;
-//                    el.style.opacity = opacity;
-//				});
-//            }else {
-//                runTime(function() {
-//                   opacity -= speedUp;
-//                    el.style.opacity = opacity;
-//                });
-//            }
+        }
+    },
+    hasClass: function(el, name) {
+        return new RegExp(RegExp("(\\s|^)" + name + "(\\s|$)")).test(el.className);
     }
 });
 	

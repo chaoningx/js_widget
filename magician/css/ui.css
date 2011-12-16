@@ -1,0 +1,3 @@
+.ui-button{ -webkit-user-select: none; cursor: pointer; display: block; float: left; margin: 0 2px; padding: 3px 8px; background-color: rgba(0,0,0,0.5); color: #ddd; border-radius: 8px; box-shadow: 1px 2px 2px rgba(0,0,0,0.6); font-weight: bold; }
+.ui-button:hover{ #fff; background-color: rgba(0,0,0,0.4); box-shadow: 1px 2px 2px rgba(0,0,0,0.6); }
+.ui-button:active{ color: #fff; box-shadow: 1px 1px 1px rgba(0,0,0,0.4); }
