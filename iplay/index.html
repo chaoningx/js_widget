@@ -1,0 +1,41 @@
+<!DOCTYPE html> 
+<html> 
+<head> 
+	<meta charset="utf-8" >
+	<title>magician</title>
+	<meta name="author" content="xiechaoning" /> 
+	<style>
+		*{ padding:0; margin:0; outline: none; border: none;}
+		body{ background-color: #333; }
+		#video{ width: 601px; height: 480px; margin: 180px auto; }
+		#gallery{ position: absolute; left: 0; top: 10px; }
+		#gallery canvas{ margin: 5px 5px 0 0; border: 1px solid #000; }
+		.iplay-box{ background-color: #000; border: 1px solid #000; -webkit-user-select: none; }
+		.iplay-control{ background-color: #000; }
+		.iplay-png{ background: url("source/iplay.png") no-repeat transparent; width: 30px; height: 30px; cursor: pointer; }
+		.iplay-play{ background-position: 7px 7px; left: 15px; }
+		.iplay-play:hover{ background-position: -26px 7px; }
+		.iplay-pause{ background-position: 7px -238px; left: 15px; }
+		.iplay-pause:hover{ background-position: -17px -238px; }
+		.iplay-shot{ background-position: 7px -16px; }
+		.iplay-shot:hover{ background-position: -25px -16px; }
+		.iplay-opera{ background-position: 7px -41px; }
+		.iplay-opera:hover{ background-position: -25px -41px; }
+		.iplay-voice0{ background-position: -25px -63px; }
+		.iplay-voice1{ background-position: 7px -107px; }
+		.iplay-voice2{ background-position: 7px -86px; }
+		.iplay-voice3{ background-position: 7px -63px; }
+		
+		.iplay-duration{ width: 130px; color: #ccc; font-size: 12px; text-align: center; border-left: 1px solid #333; }
+		.iplay-processbox{ background-color: #333; }
+		.iplay-process{ background-color: yellow; }
+		.iplay-buffer{ background-color: #555; }
+	</style>
+</head> 
+<body>
+<div id="gallery"></div>
+<div id="video"></div>
+<script src="../base/Query.js"></script>
+<script src="js/main.js"></script>
+</body> 
+</html>
