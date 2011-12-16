@@ -1,6 +1,5 @@
 var Widget = {};
 (function(){
-	
 Widget.Iplay = function(el, settings) {
 	if(!el) return;
 	this.el = typeof el === 'string' ? $.g(el) : el;
