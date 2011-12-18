@@ -48,6 +48,8 @@ Widget.Iplay = function(el, settings) {
 	this.video = document.createElement('video');
 	this.el.appendChild(this.box);
 	this.iconTop = parseInt(height / 2 + height % 2) + 'px';
+	this.toolsViewList = [];
+	this.toolsContainer = null;
 };
 Widget.Iplay.prototype = {
 	render: function(src) {
@@ -72,6 +74,86 @@ Widget.Iplay.prototype = {
 		this.box.innerHTML = '';
 		this.box.appendChild(v);
 	},
+	registerToolsView: function(v) {
+		this.toolsViewList.push(v);
+	},
+	/**
+	* 在bind方法中调用
+	**/
+	views: function() {
+		$.append(
+			this.box, 
+			this.controlView(),
+			this.processView(),
+			this.toolsView()
+		);
+	},
+	toolsView: function() {
+		var container = $.createElement('div', {
+				top: '120px',
+				display: 'none'
+			}, {
+				'class': 'iplay-tools'
+			}),
+			i = 0, toolsViewList = this.toolsViewList, len = toolsViewList.length;
+		
+		for(i; i < len; i++) {
+			container.appendChild(toolsViewList[i](this));
+		}
+		this.toolsContainer = container;
+		return container;
+	},
+	toolsIconBuilder: function(css, mouseOverCss,txt, callback) {
+		var toggleLight = $.createElement('div', {}, {
+				'class': 'iplay-tools-box'
+			}),
+			icon = $.createElement('div', {}, {
+				'class': 'iplay-png ' + css
+			}),
+			text = $.createElement('p', {}, {
+				'class': 'iplay-tools-box-title'
+			});
+		text.innerHTML = txt;
+		toggleLight.appendChild(text);
+		toggleLight.appendChild(icon);
+		
+		toggleLight.addEventListener('mouseover', function() {
+			$.replaceClass(icon, css, mouseOverCss);
+			$.replaceClass(text, 'iplay-tools-box-title', 'iplay-tools-box-title-hover');
+		});
+		
+		toggleLight.addEventListener('mouseout', function() {
+			$.replaceClass(icon, mouseOverCss, css);
+			$.replaceClass(text, 'iplay-tools-box-title-hover', 'iplay-tools-box-title');
+		});
+		
+		callback && callback(toggleLight, text);
+		return toggleLight;
+	},
+	toggleLightView: function(scop) {
+		var cover = $.createElement('div', {
+			height: document.body.scrollHeight + 'px',
+			width: document.body.scrollWidth + 'px',
+			display: 'none'
+		}, {
+			'class': 'iplay-cover'
+		});
+		document.body.appendChild(cover);
+		return scop.toolsIconBuilder('iplay-toggle-light', 'iplay-toggle-light-hover', '关灯', function(o, text) {
+			var flag = true;
+			o.addEventListener('click', function() {
+				if(flag) {
+					text.innerHTML = '开灯';
+					cover.style.display = 'block';
+					flag = false;
+				}else {
+					text.innerHTML = '关灯';
+					cover.style.display = 'none';
+					flag = true;
+				}
+			});
+		});
+	},
 	bind: function() {
 		if(this.settings.controls) { return; }
 		var me = this,
@@ -81,13 +163,13 @@ Widget.Iplay.prototype = {
 		v.addEventListener('loadedmetadata',function() {
 			var box = me.box;
 			me.duration = this.duration;
-			box.appendChild(me.controlView());
-			box.appendChild(me.processView());
+			me.registerToolsView(me.toggleLightView);
+			me.views();
 			box.addEventListener('mouseover', function() {
-				me.process.style.bottom = settings.icontrolHeight + 'px';
+				me.mouseoverControl();
 			});
 			box.addEventListener('mouseout', function() {
-				me.process.style.bottom = settings.icontrolHeight - 4 + 'px';
+				me.mouseoutControl();
 			});
 			this.addEventListener('timeupdate', function(){
 				var ct = this.currentTime;
@@ -96,6 +178,14 @@ Widget.Iplay.prototype = {
 				me.buffer.style.width = parseInt(this.buffered.end(0) / me.duration * settings.width) + 'px';
 			});
 		}, false);
+	},
+	mouseoverControl: function() {
+		this.process.style.bottom = this.settings.icontrolHeight + 'px';
+		this.toolsContainer.style.display = 'block';
+	},
+	mouseoutControl: function() {
+		this.process.style.bottom = this.settings.icontrolHeight - 4 + 'px';
+		this.toolsContainer.style.display = 'none';
 	},
 	controlView: function() {
 		var settings = this.settings,
@@ -110,7 +200,6 @@ Widget.Iplay.prototype = {
 			bar, 
 			this.playBtn(), 
 			this.durationView(), 
-			this.voiceView(),
 			this.operaView(),
 			this.shotView()
 		);
@@ -132,7 +221,7 @@ Widget.Iplay.prototype = {
 		$.addClass(box, 'iplay-duration');	
 		$.addClass(done, 'iplay-duration-time');
 		$.addClass(splitLine, 'iplay-duration-line');
-		$.addClass(totalTime, 'iplay-duration-time');
+		$.addClass(totalTime, 'iplay-duration-total');
 		
 		totalTime.innerHTML = $.secondFormat(this.duration);
 		splitLine.innerHTML = '/';

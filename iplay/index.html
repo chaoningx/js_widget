@@ -6,7 +6,7 @@
 	<meta name="author" content="xiechaoning" /> 
 	<style>
 		*{ padding:0; margin:0; outline: none; border: none;}
-		body{ background-color: #333; }
+		body{ background-color: #ccc; }
 		#video{ width: 601px; height: 480px; margin: 180px auto; }
 		#gallery{ position: absolute; left: 0; top: 10px; }
 		#gallery canvas{ margin: 5px 5px 0 0; border: 1px solid #000; }
@@ -29,8 +29,18 @@
 		.iplay-process-moving{ background-color: yellow; position: absolute; top: 0; left: 0; z-index: 8; height: 6px; width: 0; border-right: 2px solid #fff; }
 		.iplay-process-buffer{ background-color: #555; position: absolute; left: 0; top: 0; z-index: 7; height: 6px; }
 		.iplay-duration-time{ float: left; width: 50px; padding-left: 10px }
+		.iplay-duration-total{ float: left; width: 50px; }
 		.iplay-duration-line{ float: left; width: 10px; }
 		.iplay-bar{ position: absolute; left: 0; bottom: 0; z-index: 10; background-color: #000; }
+		
+		.iplay-tools { position: absolute; width: 60px; right: 0; border: solid #666; border-width: 1px 0 1px 1px; -webkit-user-select: none; cursor: pointer; }
+		.iplay-tools-box{ height: 60px; background-color: rgba(23,32,29,0.8); position: relative; font-size: 14px; }
+		.iplay-tools-box-title{ color: #ccc; position: absolute; top: 40px; left: 0; width: 60px; text-align: center; }
+		.iplay-tools-box-title-hover{ color: #fff; position: absolute; top: 40px; left: 0; width: 60px; text-align: center; }
+		.iplay-toggle-light{ background-position: 0 -208px; height: 22px; width: 15px; position: absolute; top: 12px; left: 24px; }
+		.iplay-toggle-light-hover { background-position: -32px -208px; height: 22px; width: 15px; position: absolute; top: 12px; left: 24px; }
+		
+		.iplay-cover{ position: fixed; z-index: -1; background-color: rgba(0,0,0,0.6); top: 0; left: 0; }
 	</style>
 </head> 
 <body>
@@ -51,7 +61,7 @@
 					url: 'http://www.craftymind.com/factory/html5video/BigBuckBunny_640x360.mp4'
 				}
 			],
-			video = data[1];
+			video = data[0];
 		gallery.style.width = document.body.scrollWidth + 'px';
 		var	v5 = new Widget.Iplay('video', { controls: false, shotWidth: 200, shotHeight: 150, poster: video.poster, shotCallback: function(v) {
 			gallery.insertBefore(v, gallery.firstChild);
