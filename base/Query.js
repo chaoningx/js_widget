@@ -400,9 +400,8 @@ Query.extend({
 		}, params);
 		var readyState = '',
 			timer = '',
-			xhr = new XMLRequest();
+			xhr = new XMLHttpRequest();
 		params.url = encodeURIComponent(params.url);
-		xhr.setRequestHeader('User-Agent', 'XMLHTTP');
 		xhr.open(params.type, params.url, params.async, params.user, params.password);
 		xhr.onreadystatechange = function() {
 			try{
@@ -423,8 +422,8 @@ Query.extend({
 			}
 		};
 		params.beforeSend && params.beforeSend();
-		if(type === 'GET') {
-			xhr.send(null);
+		if(params.type === 'GET') {
+			xhr.send();
 		}else {
 			xhr.setRequestHeader('Content-type', params.contentType);
 			xhr.send(Query.param(params.data));
@@ -443,8 +442,13 @@ Query.extend({
 		});
 	},
 	get: function(url, params, callback, dataType) {
+		if(arguments[1].constructor != Function ) {
+			url = url + '?' + Query.param(params);
+		}else {
+			callback = arguments[1];
+		}
 		Query.ajax({
-			url: url + '?' + Query.param(params),
+			url: url,
 			type: 'GET',
 			dataType: !dataType ? 'json' : dataType,
 			success: callback
@@ -615,4 +619,3 @@ Query.extend({
 	
 window.$ = window.Q = Query;
 })(window);
-
