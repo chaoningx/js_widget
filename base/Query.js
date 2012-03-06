@@ -396,12 +396,15 @@ Query.extend({
 			timeout: 10000,
 			contentType: 'application/x-www-form-urlencoded',
 			user: '',
-			password: ''
+			password: '',
+			isEncode: true
 		}, params);
 		var readyState = '',
 			timer = '',
 			xhr = new XMLHttpRequest();
-		params.url = encodeURIComponent(params.url);
+		if(params.isEncode) {
+			params.url = encodeURIComponent(params.url);
+		}
 		xhr.open(params.type, params.url, params.async, params.user, params.password);
 		xhr.onreadystatechange = function() {
 			try{
@@ -426,19 +429,22 @@ Query.extend({
 			xhr.send();
 		}else {
 			xhr.setRequestHeader('Content-type', params.contentType);
-			xhr.send(Query.param(params.data));
+			params.isEncode ?
+				xhr.send(Query.param(params.data)) :
+				xhr.send(JSON.stringify(params.data));
 		}
 		timer = setTimeout(function(){
 			xhr.abort();
 		}, params.timeout);
 	},
-	post: function(url, data, callback, dataType) {
+	post: function(url, data, callback, dataType, isEncode) {
 		Query.ajax({
 			url: url,
 			data: data,
 			type: 'POST',
 			dataType: !dataType ? 'json' : dataType,
-			success: callback
+			success: callback,
+			isEncode: isEncode
 		});
 	},
 	get: function(url, params, callback, dataType) {
