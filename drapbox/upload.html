@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>uploadFile index</title>
+		<link rel="stylesheet" type="text/css" href="/css/base.css">
+		<style>
+			body{ background-color:#fefefe; }
+			header{ width: 900px; height: 24px; line-height: 24px; text-align: center; margin: 10px auto; font-size: 16px; color: #666; font-weight: bold; }
+			.upload-box{ width: 600px; height: 80px; border: 1px solid #333; background-color: #dedede; position: relative; text-align: center; line-height: 80px; font-size: 14px; font-weight: bold; margin: 10px auto; }
+			.center{ width: 600px; margin: 20px auto; }
+			.upload-ul li{ border-bottom:1px solid #ddd; height: 30px; line-height: 30px; position: relative; }
+			.position-right{ text-align: right; position: absolute; top: 0; right: 4px; width: 160px; font-size: 10px; height: 30px; line-height: 30px; }
+			.position-right span{ margin-left: 8px; cursor: pointer; font-weight: bold; color: #666; }
+			.position-right span:hover{ text-decoration: underline; }
+			.position-right span.upload-status{ font-weight: normal; color: green; }
+			.success{ background-color: green; color: #fff; }
+			.fail{ background-color: red; color: #fff; }
+			.normal{ background-color: #fff; color: #333; }
+			.fail .position-right span,
+			.success .position-right span{ color: #fff; }
+		</style>
+	</head>
+	<body>
+		<header>
+			文件上传
+		</header>
+		<div class="upload-box" id="dropbox">
+			请把文件拖到此处
+		</div>
+		<div class="center">
+			<input type="button" value="全部上传" class="submit"/>
+			<input type="button" value="清空列表" class="clear"/>
+		</div>
+		<div class="center upload-list"></div>
+		<script src="/js/jquery-1.8.2.min.js"></script>
+		<script>
+		var gid = function(id) { return document.getElementById(id); },
+			dropbox = gid('dropbox'),
+			ulJO = $('<ul class="upload-ul"></ul>').appendTo(".upload-list"),
+			itemTpl = [
+				'<li data-index="{index}">',
+					'<span>[{number}]</span> ',
+					'<strong>{name}</strong> - <span>{size}</span> ',
+					'<div class="position-right">',
+						'<span class="upload-status">加载完成</span>',
+						'<span class="upload-upload-start">Upload</span>',
+						'<span class="upload-delete">Delete</span>',
+					'</div>',
+				'</li>'
+			].join(""),
+			render = function(data, i) {
+				var tpl = itemTpl.replace("{index}", i).replace("{number}", i + 1),
+					t = null;
+
+				for(var o in data) {
+					t = data[o];
+					if (o == "size") {
+						t = (t / 1024).toFixed(2) + "KB";
+					};
+					tpl = tpl.replace("{"+ o +"}", t);
+				}
+				return tpl;
+			},
+			upload = function(jo, completeCallback) {
+				var fatherJO = jo.parents('li'),
+					id = fatherJO.attr('data-index'),
+					tipJO = fatherJO.find('.upload-status');
+
+				tipJO.html('正在上传');
+				$.post('/upload/', dic[id], function(rs) {
+					if(rs.Status == 0) {
+						tipJO.html('上传完成');
+						fatherJO.removeClass().addClass('success');
+					}else {
+						tipJO.html('上传失败');
+						tipJO.attr('title', rs.Result.code);
+						fatherJO.removeClass().addClass('fail');
+					}
+					completeCallback && completeCallback(id);
+				}, "json");
+			},
+			dic = {},
+			index = 0;
+
+		$('.clear').click(function() {
+			ulJO.empty();
+			dic = {};
+			index = 0;
+		});
+
+		$('.submit').click(function() {
+			var trigger = ulJO.find('.upload-upload-start'),
+				len  = trigger.length,
+				i = 0,
+				loop = function() {
+					if (++i < len) {
+						upload($(trigger[i]), loop);
+					}
+				}
+
+			if (len != 0) {
+				upload($(trigger[i]), loop);
+			};
+		});
+
+		ulJO.on('click', '.upload-delete', function() {
+			var thisJO = $(this),
+    			fatherJO = thisJO.parents('li'),
+    			id = fatherJO.attr('data-index');
+
+    		fatherJO.fadeOut('fast', function() {
+    			fatherJO.remove();
+    			dic[id] = null;
+        		delete dic[id];
+        		index--;
+    		});
+		});
+
+		ulJO.on('click', '.upload-upload-start', function() {
+    		upload($(this))
+		});
+
+		dropbox.addEventListener("dragenter", function(e){ 
+		    dropbox.style.backgroundColor = 'yellow';   
+		}, false);   
+		dropbox.addEventListener("dragleave", function(e){
+		    dropbox.style.backgroundColor = '#dedede';   
+		}, false);
+		dropbox.addEventListener("dragover", function(e){   
+		    e.stopPropagation();   
+		    e.preventDefault();   
+		}, false);
+		dropbox.addEventListener("drop", function(e){   
+		    e.stopPropagation();
+			e.preventDefault();
+			
+	        var list = e.dataTransfer.files,
+	        	reader = new FileReader(),
+	        	i = 0, len = list.length;
+
+			reader.onload = function(e) {
+				dic[index] = { name: list[i].name, fileData: this.result };
+				var jo = $(render(list[i], index)).hide().appendTo(ulJO);
+				jo.fadeIn("slow");
+				if (i++ < len) {
+					reader.readAsDataURL(list[i]);
+					index++;
+				}
+			}
+			reader.readAsDataURL(list[i]);
+			dropbox.style.backgroundColor = '#dedede';
+		}, false); 
+		</script>
+	</body>
+</html>
