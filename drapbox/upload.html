@@ -10,7 +10,7 @@
 			.upload-box{ width: 600px; height: 80px; border: 1px solid #333; background-color: #dedede; position: relative; text-align: center; line-height: 80px; font-size: 14px; font-weight: bold; margin: 10px auto; }
 			.center{ width: 600px; margin: 20px auto; }
 			.upload-ul li{ border-bottom:1px solid #ddd; height: 30px; line-height: 30px; position: relative; }
-			.position-right{ text-align: right; position: absolute; top: 0; right: 4px; width: 160px; font-size: 10px; height: 30px; line-height: 30px; }
+			.position-right{ text-align: right; position: absolute; top: 0; right: 4px; width: 200px; font-size: 10px; height: 30px; line-height: 30px; }
 			.position-right span{ margin-left: 8px; cursor: pointer; font-weight: bold; color: #666; }
 			.position-right span:hover{ text-decoration: underline; }
 			.position-right span.upload-status{ font-weight: normal; color: green; }
@@ -31,26 +31,29 @@
 		<div class="center">
 			<input type="button" value="全部上传" class="submit"/>
 			<input type="button" value="清空列表" class="clear"/>
+			<input type="button" value="测试" class="test"/>
 		</div>
 		<div class="center upload-list"></div>
 		<script src="/js/jquery-1.8.2.min.js"></script>
+		<script src="/js/socket.io.min.js"></script>
 		<script>
-		var gid = function(id) { return document.getElementById(id); },
+		var socket = io.connect('http://192.168.0.100');
+			gid = function(id) { return document.getElementById(id); },
 			dropbox = gid('dropbox'),
 			ulJO = $('<ul class="upload-ul"></ul>').appendTo(".upload-list"),
 			itemTpl = [
 				'<li data-index="{index}">',
-					'<span>[{number}]</span> ',
+					'<span class="upload-index"></span> ',
 					'<strong>{name}</strong> - <span>{size}</span> ',
 					'<div class="position-right">',
-						'<span class="upload-status">加载完成</span>',
+						'<span class="upload-status"></span>',
 						'<span class="upload-upload-start">Upload</span>',
 						'<span class="upload-delete">Delete</span>',
 					'</div>',
 				'</li>'
 			].join(""),
-			render = function(data, i) {
-				var tpl = itemTpl.replace("{index}", i).replace("{number}", i + 1),
+			render = function(data, index) {
+				var tpl = itemTpl.replace("{index}", index),
 					t = null;
 
 				for(var o in data) {
@@ -62,31 +65,85 @@
 				}
 				return tpl;
 			},
+			readFile = function(index, successCallback, failCallback) {
+				var flag = index.split('-'),
+					info = dic[flag[0]][flag[1]],
+					blob = null,
+					reader = new FileReader();
+
+				var mark = 0,
+					step = 1024,
+					size = info.size - 1,
+					loop = 1,
+					status = 'doing';
+
+				var run = function() {
+					if (step > size - mark) {
+						blob = info.slice(mark, size);
+						status = 'done';
+					}else {
+						blob = info.slice(mark, mark + step);
+						mark = step * loop;
+						loop ++;
+					}
+					reader.readAsBinaryString(blob);
+				};	
+
+				reader.onerror = function(e) {
+					failCallback && failCallback();
+				};
+				reader.onloadend = function(e) {
+					var params = { name: info.name, fileData: this.result, status: status };
+					socket.emit('fileData', params);
+				};
+				socket.on('result', function (data) {
+					data = JSON.parse(data);
+					if (data.Status == 0) {
+ 						successCallback && successCallback((mark / size * 100).toFixed(2), status);
+						status != 'done' && run();
+					}else {
+						failCallback && failCallback();
+					}
+				});
+				run();
+			},
 			upload = function(jo, completeCallback) {
 				var fatherJO = jo.parents('li'),
 					id = fatherJO.attr('data-index'),
 					tipJO = fatherJO.find('.upload-status');
 
-				tipJO.html('正在上传');
-				$.post('/upload/', dic[id], function(rs) {
-					if(rs.Status == 0) {
-						tipJO.html('上传完成');
+				readFile(id, function(percent, status) {
+					if (status == "done") {
+						tipJO.html("上传 <strong>100</strong> %");
 						fatherJO.removeClass().addClass('success');
+						completeCallback && completeCallback(id);
 					}else {
-						tipJO.html('上传失败');
-						tipJO.attr('title', rs.Result.code);
-						fatherJO.removeClass().addClass('fail');
+						tipJO.html("上传 <strong>" + percent + "</strong> %");
 					}
+				}, function(e) {
+					tipJO.html('上传失败');
+					fatherJO.removeClass().addClass('fail');
 					completeCallback && completeCallback(id);
-				}, "json");
+				});
+			},
+			updateLineNumber = function() {
+				ulJO.find('.upload-index').each(function(i, n) {
+		        	n.innerHTML = "[" + (i+1) + "]";
+		        });
 			},
 			dic = {},
+			index = 0,
+			count = 0;
+
+		var init = function() {
+			dic = {};
 			index = 0;
+			count = 0;
+		};
 
 		$('.clear').click(function() {
 			ulJO.empty();
-			dic = {};
-			index = 0;
+			init();
 		});
 
 		$('.submit').click(function() {
@@ -97,7 +154,7 @@
 					if (++i < len) {
 						upload($(trigger[i]), loop);
 					}
-				}
+				};
 
 			if (len != 0) {
 				upload($(trigger[i]), loop);
@@ -106,19 +163,20 @@
 
 		ulJO.on('click', '.upload-delete', function() {
 			var thisJO = $(this),
-    			fatherJO = thisJO.parents('li'),
-    			id = fatherJO.attr('data-index');
+    			fatherJO = thisJO.parents('li');
 
     		fatherJO.fadeOut('fast', function() {
     			fatherJO.remove();
-    			dic[id] = null;
-        		delete dic[id];
-        		index--;
+    			updateLineNumber();
+    			count--;
+    			if (count == 0) { 
+    				init();
+				};
     		});
 		});
 
 		ulJO.on('click', '.upload-upload-start', function() {
-    		upload($(this))
+    		upload($(this));
 		});
 
 		dropbox.addEventListener("dragenter", function(e){ 
@@ -132,25 +190,25 @@
 		    e.preventDefault();   
 		}, false);
 		dropbox.addEventListener("drop", function(e){   
-		    e.stopPropagation();
 			e.preventDefault();
+			e.stopPropagation();
 			
 	        var list = e.dataTransfer.files,
-	        	reader = new FileReader(),
-	        	i = 0, len = list.length;
+	        	len = list.length,
+	        	tpls = [];
 
-			reader.onload = function(e) {
-				dic[index] = { name: list[i].name, fileData: this.result };
-				var jo = $(render(list[i], index)).hide().appendTo(ulJO);
-				jo.fadeIn("slow");
-				if (i++ < len) {
-					reader.readAsDataURL(list[i]);
-					index++;
-				}
-			}
-			reader.readAsDataURL(list[i]);
+	        dic[index] = list;
+	        count += len;
+	        for(var i = 0; i < len; i++) {
+	        	tpls.push(render(list[i], index + "-" + i));
+	        }
+
+	        ulJO.append(tpls.join(""));
+	        index++;
+
+	        updateLineNumber();
 			dropbox.style.backgroundColor = '#dedede';
-		}, false); 
+		}, false);
 		</script>
 	</body>
 </html>
