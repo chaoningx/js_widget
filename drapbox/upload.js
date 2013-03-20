@@ -3,51 +3,18 @@ var http = require('http'),
 	path = require('path'),
 	xcn = require('xcn'),
 	mongo = require('mongodb'),
-	fs = require('fs');
+	fs = require('fs'),
+	io = require('socket.io');
 
 var _rootPath = xcn.Config._rootPath = path.resolve('Content');
 
 var util = xcn.Utils;
 var app = xcn.App;
-var Cache = xcn.ICache;
 var Result = xcn.Result;
+var socket = null;
 
 app.get("/uploadfile/", function(req, res) {
 	res.render("upload.html");
-});
-
-app.post("/upload/", function(req, res, query) {
-	var buffers = [],
-			len = 0;
-	req.on('data', function(buf) {
-		len += buf.length;
-		buffers.push(buf);
-	});
-	req.on('end', function() {
-		var buffer = new Buffer(len),
-			pos = 0;
-		buffers.forEach(function(n, i) {
-			buffers[i].copy(buffer, pos);
-			pos += buffers[i].length;
-		});
-		var q = url.parse('?' + buffer.toString(), true, true).query;
-		var fileName = q.name ? q.name : new Date().getTime();
-		fs.exists('/Users/chaoningxie/Documents/uploadFiles/' + fileName, function(exists) {
-			if (exists) {
-				var s = fileName.split('.');
-				fileName = s[0] + "_" + new Date().getTime() + "." + s[1];
-			}
-			var base64Data = q.fileData.split(',')[1];
-			var dataBuffer = new Buffer(base64Data, 'base64'); 
-			fs.writeFile('/Users/chaoningxie/Documents/uploadFiles/' + fileName, dataBuffer, function(err) {
-				if(err) {
-					res.send(Result.FAILED(err));
-				}else {
-					res.send(Result.SUCCESS("ok"));
-				}
-			});
-		});
-	});
 });
 /* logic */
 
@@ -60,8 +27,8 @@ var _db = new Db('newsclues', _server);
 _db.open(function(err, db) {
 	if(!err) {
 		console.log('db is connected.');
-		xcn.Config._mongodb = db;
-		http.createServer(function (req, res) {
+		sasa.Config._mongodb = db;
+		var httpServer = http.createServer(function (req, res) {
 			var paths = url.parse(req.url),
 				query = {};
 			
@@ -84,7 +51,9 @@ _db.open(function(err, db) {
 						if(temp.length != 0) { query[temp[0]] = temp[1]; }
 					});
 				}
-				if(paths.pathname.charAt(paths.pathname.length - 1) != '/') { paths.pathname += '/'; }
+				if(paths.pathname.charAt(paths.pathname.length - 1) != '/') { 
+					paths.pathname += '/'; 
+				}
 				var method = app.getMethod(req.method, paths.pathname);
 				if(method) {
 					method(req, res, query);
@@ -93,7 +62,41 @@ _db.open(function(err, db) {
 				}
 			}
 		}).listen(80);
-
 		console.log("start");
 	}
+
+	socket = io.listen(httpServer);
+	socket.sockets.on('connection', function (client) {
+		var dir = '/Users/chaoningxie/Documents/uploadFiles/';
+		var currentFile = null;
+		client.on('fileData', function (data) {
+			var fileName = data.name,
+				status = data.status,
+				dataBuffer = new Buffer(data.fileData, 'binary'),
+				tempName = client.id;
+
+			if (currentFile == null) {
+				currentFile = fileName;
+			};
+
+			if (currentFile == fileName) {
+				fs.appendFileSync(dir + tempName, dataBuffer);
+				if (status == "done") {
+					var exists = fs.existsSync(dir + fileName);
+					if (exists) {
+						fileName = tempName + "_" + new Date().getTime() + "_" + fileName;
+					}
+					fs.renameSync(dir + tempName, dir + fileName);
+					currentFile = null;
+				}
+				client.emit('result', Result.SUCCESS('ok'));
+			}else {
+				var exists = fs.existsSync(dir + tempName);
+				if (exists) {
+					fs.unlinkSync(dir + tempName);
+				}
+				client.emit('result', Result.FAILED('error submit.'));
+			}
+		});
+	});
 });
