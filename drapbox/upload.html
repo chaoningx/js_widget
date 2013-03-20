@@ -31,13 +31,12 @@
 		<div class="center">
 			<input type="button" value="全部上传" class="submit"/>
 			<input type="button" value="清空列表" class="clear"/>
-			<input type="button" value="测试" class="test"/>
 		</div>
 		<div class="center upload-list"></div>
 		<script src="/js/jquery-1.8.2.min.js"></script>
 		<script src="/js/socket.io.min.js"></script>
 		<script>
-		var socket = io.connect('http://192.168.0.100');
+		var socket = io.connect('http://192.168.1.105');
 			gid = function(id) { return document.getElementById(id); },
 			dropbox = gid('dropbox'),
 			ulJO = $('<ul class="upload-ul"></ul>').appendTo(".upload-list"),
@@ -65,14 +64,14 @@
 				}
 				return tpl;
 			},
-			readFile = function(index, successCallback, failCallback) {
+			readFile = function(index, successCallback, failCallback, completeCallback) {
 				var flag = index.split('-'),
 					info = dic[flag[0]][flag[1]],
 					blob = null,
 					reader = new FileReader();
 
 				var mark = 0,
-					step = 1024,
+					step = 1024 * 100,
 					size = info.size - 1,
 					loop = 1,
 					status = 'doing';
@@ -95,12 +94,15 @@
 				reader.onloadend = function(e) {
 					var params = { name: info.name, fileData: this.result, status: status };
 					socket.emit('fileData', params);
+					status == 'done' && completeCallback();
 				};
 				socket.on('result', function (data) {
 					data = JSON.parse(data);
 					if (data.Status == 0) {
  						successCallback && successCallback((mark / size * 100).toFixed(2), status);
-						status != 'done' && run();
+ 						if(status != 'done') {
+ 							run();
+ 						}
 					}else {
 						failCallback && failCallback();
 					}
@@ -116,14 +118,14 @@
 					if (status == "done") {
 						tipJO.html("上传 <strong>100</strong> %");
 						fatherJO.removeClass().addClass('success');
-						completeCallback && completeCallback(id);
 					}else {
 						tipJO.html("上传 <strong>" + percent + "</strong> %");
 					}
 				}, function(e) {
 					tipJO.html('上传失败');
 					fatherJO.removeClass().addClass('fail');
-					completeCallback && completeCallback(id);
+				}, function() {
+					completeCallback && completeCallback();
 				});
 			},
 			updateLineNumber = function() {
